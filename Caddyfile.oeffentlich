@@ -1,0 +1,9 @@
+# Burix Proxy, Modus „oeffentlich“: HTTPS-Zertifikate holt Caddy automatisch bei Let's Encrypt
+# (Port 80 und 443 müssen aus dem Internet erreichbar sein).
+# Teil des Repositorys (Update mit proxy.sh aktualisieren) – eigene Einstellungen gehören nach seiten/.
+{
+	email {$ACME_EMAIL}
+}
+
+# Jede Webseite ist eine Datei in seiten/ (verwaltet mit proxy.sh)
+import /etc/caddy/seiten/*.caddy
