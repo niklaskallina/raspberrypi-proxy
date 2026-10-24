@@ -1,1 +1,1 @@
-# raspberrypi-prox
+# raspberrypi-proxy
