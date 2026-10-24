@@ -1,0 +1,36 @@
+# Burix Proxy, Modus „lokal“: Betrieb im Firmennetz ohne öffentliche Domain.
+# Caddy stellt die HTTPS-Zertifikate mit einer eigenen Zertifizierungsstelle aus. Die Geräte
+# müssen deren Stammzertifikat einmal installieren: http://<STANDARD_ADRESSE>/zertifikat
+# Teil des Repositorys (Update mit proxy.sh aktualisieren) – eigene Einstellungen gehören nach seiten/.
+{
+	email {$ACME_EMAIL}
+	local_certs
+	# Das Stammzertifikat nicht im Container-System installieren (die Geräte brauchen es, nicht Caddy)
+	skip_install_trust
+	# Browser senden bei IP-Adressen keinen Servernamen mit – dann dieses Zertifikat verwenden
+	default_sni {$STANDARD_ADRESSE}
+	# Weiterleitung von HTTP auf HTTPS übernimmt der Block für Port 80 unten selbst
+	auto_https disable_redirects
+}
+
+# Stammzertifikat der eigenen Zertifizierungsstelle als Download (auch in seiten/*.caddy nutzbar)
+(stammzertifikat) {
+	root * /data/caddy/pki/authorities/local
+	rewrite * /root.crt
+	header Content-Type application/x-x509-ca-cert
+	header Content-Disposition "attachment; filename=\"burix-zeiterfassung.crt\""
+	file_server
+}
+
+# Jede Webseite ist eine Datei in seiten/ (verwaltet mit proxy.sh)
+import /etc/caddy/seiten/*.caddy
+
+# Port 80: Stammzertifikat zum Herunterladen, alles andere auf HTTPS umleiten
+http:// {
+	handle /zertifikat {
+		import stammzertifikat
+	}
+	handle {
+		redir https://{host}{uri} 308
+	}
+}

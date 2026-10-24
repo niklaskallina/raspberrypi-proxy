@@ -1,0 +1,40 @@
+# Burix Proxy – nimmt alle Anfragen auf Port 80/443 an und verteilt sie nach Adresse auf die Webseiten
+# (Zeiterfassung und weitere). Eigenständiges Docker-Projekt, läuft unabhängig von den Anwendungen.
+# Verwaltung: sudo bash proxy.sh (in diesem Ordner). Einstellungen: .env (MODUS, ACME_EMAIL, STANDARD_ADRESSE),
+# erzeugt von: sudo bash proxy.sh einrichten
+#
+# Anwendungen hängen sich an das Docker-Netz „web“ und sind dort unter ihrem Namen erreichbar.
+
+name: proxy
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      ACME_EMAIL: ${ACME_EMAIL:?ACME_EMAIL fehlt in .env}
+      STANDARD_ADRESSE: ${STANDARD_ADRESSE:-}
+    volumes:
+      # Caddyfile.oeffentlich (Let's Encrypt) oder Caddyfile.lokal (Firmennetz, eigene Zertifizierungsstelle)
+      - ./Caddyfile.${MODUS:?MODUS fehlt in .env}:/etc/caddy/Caddyfile:ro
+      # Eine Datei pro Webseite
+      - ./seiten:/etc/caddy/seiten:ro
+      # HTML-Dateien der Webseiten, je Adresse ein Ordner
+      - ./dateien:/srv:ro
+      # Zertifikate (im Modus lokal auch die eigene Zertifizierungsstelle)
+      - ./daten/caddy:/data
+      - ./daten/caddy-config:/config
+    extra_hosts:
+      # Für Programme, die direkt auf dem Gerät laufen (proxy.sh hinzufuegen … --weiterleiten <port>)
+      - "host.docker.internal:host-gateway"
+    networks:
+      - web
+
+networks:
+  web:
+    name: web
+    external: true
